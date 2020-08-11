@@ -1,0 +1,113 @@
+<?php
+
+class Diff {
+    public $deleteTemplate = "<div class='deleted'>[text]</div>";
+    public $addTemplate = "<div class='add'>[text]</div>";
+
+    function textToArray($text){
+        $listWord = [];
+
+        $lines = explode("\n", $text);
+        foreach($lines as $lineKey => $line){
+            $listWord[$lineKey] = [];
+
+            $words = explode(" ",$line);
+            foreach($words as $wordKey => $word){
+                    $listWord[$lineKey] += [ $wordKey => $word];
+            }
+        }
+
+        return $listWord;
+    }
+
+    function hasIndex($array, $index){
+        if(isset($array[ $index ])){
+            return true;
+        }
+        return false;
+    }
+
+    function recursive($origin, $modified){
+        $hasReplaced = false;
+        
+        // remove duplicate line
+        for($originKey = 0; $originKey < count($origin); $originKey++) {
+            $originValue = $origin[ $originKey ];
+            for($modifiedKey = 0; $modifiedKey < count($modified); $modifiedKey++) {
+                if(isset($modified[ $modifiedKey ])){
+                    $modifiedValue = $modified[ $modifiedKey ];
+                    $sameValue = ($originValue == $modifiedValue);
+                    $sameKey = ($originKey == $modifiedKey);
+                    if ($sameKey && $sameValue) {
+                        
+                        $hasReplaced = true;
+                        unset( $origin[$originKey] );
+                        unset( $modified[$modifiedKey] );
+                        continue;
+                    }
+                    else if( !$sameKey || $sameValue){
+                        $originNextValue = isset($origin[$originKey+1])?:null;
+                        $modifiedNextValue = isset($modified[$modifiedKey+1])?:null;
+                        if( ($originNextValue == $modifiedNextValue) && isset($originNextValue) ){
+                            $hasReplaced = true;
+                            unset( $origin[$originKey] );
+                            unset( $modified[$modifiedKey] );
+                            continue;
+                        }
+                    }
+                }
+            }
+            if ($hasReplaced) {
+                $hasReplaced = false;
+                continue;
+            }
+        }
+
+        // remove duplicate line
+        // foreach ($origin as $originKey => $originValue) {
+        //     foreach ($modified as $modifiedKey => $modifiedValue) {
+        //         if ($originValue == $modifiedValue && $originKey >= $modifiedKey) {
+                    
+        //             // remove duplicate word
+        //             foreach ($origin[$originKey] as $originWordKey => $originWord) {
+        //                 foreach ($modified[$modifiedKey] as $modifiedWordKey => $modifiedWord) {
+        //                     if ($originWord == $modifiedWord && $originWordKey >= $modifiedWordKey) {
+        //                         $hasReplaced = true;
+        //                         unset($origin[$originKey][$originWordKey]);
+        //                         unset($modified[$modifiedKey][$modifiedWordKey]);
+        //                         continue;
+        //                     }
+        //                 }
+        //                 if ($hasReplaced) {
+        //                     $hasReplaced = false;
+        //                     continue;
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+
+        return [
+            "origin" => $origin,
+            "modified" => $modified
+        ];
+    }
+
+    function compare($originText, $modifiedText, $key = true){
+        $origin = self::textToArray($originText);
+        $modified = self::textToArray($modifiedText);
+
+        $hasReplaced = false;
+        $diff = [];
+
+        $diff = self::recursive($origin, $modified);
+
+        print_r($diff);
+    }
+}
+
+
+$files1 = file_get_contents('files1.txt');
+$files2 = file_get_contents('files2.txt');
+// echo $files1;
+Diff::compare($files1, $files2);
