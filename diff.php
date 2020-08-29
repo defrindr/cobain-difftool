@@ -93,7 +93,7 @@ class Diff
 
     public function arrayToString($source, $with_line = false)
     {
-        if($with_line){
+        if ($with_line) {
             $text = "";
             foreach ($source as $lines) {
                 $line = "";
@@ -104,16 +104,16 @@ class Diff
                 $text .= "$line\n";
             }
             $text = trim($text);
-    
+
             return $text;
-        }else{
+        } else {
             $text = "";
             foreach ($source as $word) {
                 $text .= "$word ";
             }
-    
+
             $text = trim($text);
-    
+
             return $text;
         }
     }
@@ -148,8 +148,9 @@ class Diff
         ];
     }
 
-    function assignArray($source, $values){
-        foreach($values as $keyLine => $valueLine ){
+    public function assignArray($source, $values)
+    {
+        foreach ($values as $keyLine => $valueLine) {
             foreach ($valueLine as $keyWord => $valueWord) {
                 $source[$keyLine][$keyWord] = $valueWord;
             }
@@ -158,7 +159,8 @@ class Diff
         return $source;
     }
 
-    public function buildToHTML($origin, $modified, $source){
+    public function buildToHTML($origin, $modified, $source)
+    {
         $diff = self::colorize($origin, $modified);
 
         $source_origin = self::textToArray($source['origin']);
@@ -167,7 +169,7 @@ class Diff
         $source_origin = self::assignArray($source_origin, $diff['origin']);
         $source_modified = self::assignArray($source_modified, $diff['modified']);
 
-        $origin_text = self::arrayToString($source_origin, $with_line = True);
+        $origin_text = self::arrayToString($source_origin, $with_line = true);
         $modified_text = self::arrayToString($source_modified, $with_line = true);
 
         return [
@@ -176,18 +178,19 @@ class Diff
         ];
     }
 
-    public function combineArray($origin, $combinator, $result = []){
-        foreach($combinator as $key_combinator => $value_combinator){
-            foreach($origin as $key_origin => $value_origin){
-                if($key_origin == $key_combinator){
-                    if(gettype($value_combinator) == "array"){
-                        foreach($combinator as $key => $value){
+    public function combineArray($origin, $combinator, $result = [])
+    {
+        foreach ($combinator as $key_combinator => $value_combinator) {
+            foreach ($origin as $key_origin => $value_origin) {
+                if ($key_origin == $key_combinator) {
+                    if (gettype($value_combinator) == "array") {
+                        foreach ($combinator as $key => $value) {
                             $result[$key_origin] = self::combineArray($value_origin, $value_combinator, $result);
                         }
-                    }else{
+                    } else {
                         $result[$key_origin] = self::setColor($value_origin, 'red') . self::setColor($value_combinator, 'green');
                     }
-                }else{
+                } else {
                     $result[$key_origin] = $value_origin;
                 }
             }
@@ -205,17 +208,15 @@ class Diff
         $diff = [];
 
         $diff = self::recursive($origin, $modified);
-        
 
-        if($combine_string){
-            // return $modified;
+        if ($combine_string) {
             $result = self::combineArray($origin, $diff['modified']);
             return self::arrayToString($result, $with_line = true);
         }
 
         $diff = self::buildToHTML($diff['origin'], $diff['modified'], [
             'origin' => $origin_text,
-            'modified' => $modified_text
+            'modified' => $modified_text,
         ]);
 
         return $diff;
