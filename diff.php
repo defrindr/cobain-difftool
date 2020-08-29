@@ -36,25 +36,25 @@ class Diff
         $hasReplaced = false;
 
         // remove duplicate line
-        foreach ($origin as $originKey => $originValue) {
-            foreach ($modified as $modifiedKey => $modifiedValue) {
-                $sameValue = ($originValue === $modifiedValue);
-                $sameKey = ($originKey === $modifiedKey);
+        foreach ($origin as $key_origin => $value_origin) {
+            foreach ($modified as $key_modified => $value_modified) {
+                $sameValue = ($value_origin === $value_modified);
+                $sameKey = ($key_origin === $key_modified);
                 if ($sameValue && $sameKey) {
                     $hasReplaced = true;
 
-                    unset($modified[$modifiedKey]);
-                    unset($origin[$originKey]);
+                    unset($modified[$key_modified]);
+                    unset($origin[$key_origin]);
                     continue;
                 } else if ($sameKey && !$sameValue) {
                     // remove duplicate word in same line
-                    foreach ($originValue as $originWordKey => $originWordValue) {
-                        foreach ($modifiedValue as $modifiedWordKey => $modifiedWordValue) {
-                            $sameWordKey = ($originWordKey === $modifiedWordKey);
-                            $sameWordValue = ($originWordValue === $modifiedWordValue);
+                    foreach ($value_origin as $key_nested_origin => $value_nested_origin) {
+                        foreach ($value_modified as $key_nested_modified => $value_nested_modified) {
+                            $sameWordKey = ($key_nested_origin === $key_nested_modified);
+                            $sameWordValue = ($value_nested_origin === $value_nested_modified);
                             if ($sameWordKey && $sameWordValue) {
-                                unset($origin[$originKey][$originWordKey]);
-                                unset($modified[$modifiedKey][$modifiedWordKey]);
+                                unset($origin[$key_origin][$key_nested_origin]);
+                                unset($modified[$key_modified][$key_nested_modified]);
                             }
                         }
                     }
@@ -91,9 +91,9 @@ class Diff
         return $out;
     }
 
-    public function arrayToString($source, $withLine = false)
+    public function arrayToString($source, $with_line = false)
     {
-        if($withLine){
+        if($with_line){
             $text = "";
             foreach ($source as $lines) {
                 $line = "";
@@ -120,22 +120,22 @@ class Diff
 
     public function colorize($origin, $modified)
     {
-        foreach ($origin as $originKey => $originValue) {
-            if (empty($originValue)) {
-                unset($origin[$originKey]);
+        foreach ($origin as $key_origin => $value_origin) {
+            if (empty($value_origin)) {
+                unset($origin[$key_origin]);
 
-                foreach ($modified as $modifiedKey => $modifiedValue) {
-                    foreach ($modifiedValue as $modifiedWordKey => $modifiedWordValue) {
-                        $modified[$modifiedKey][$modifiedWordKey] = self::setColor($modifiedWordValue, 'green');
+                foreach ($modified as $key_modified => $value_modified) {
+                    foreach ($value_modified as $key_nested_modified => $value_nested_modified) {
+                        $modified[$key_modified][$key_nested_modified] = self::setColor($value_nested_modified, 'green');
                     }
                 }
             } else {
 
-                foreach ($modified as $modifiedKey => $modifiedValue) {
-                    foreach ($originValue as $originWordKey => $originWordValue) {
-                        foreach ($modifiedValue as $modifiedWordKey => $modifiedWordValue) {
-                            $origin[$originKey][$originWordKey] = self::setColor($originWordValue, 'red');
-                            $modified[$modifiedKey][$modifiedWordKey] = self::setColor($modifiedWordValue, 'green');
+                foreach ($modified as $key_modified => $value_modified) {
+                    foreach ($value_origin as $key_nested_origin => $value_nested_origin) {
+                        foreach ($value_modified as $key_nested_modified => $value_nested_modified) {
+                            $origin[$key_origin][$key_nested_origin] = self::setColor($value_nested_origin, 'red');
+                            $modified[$key_modified][$key_nested_modified] = self::setColor($value_nested_modified, 'green');
                         }
                     }
                 }
@@ -161,33 +161,61 @@ class Diff
     public function buildToHTML($origin, $modified, $source){
         $diff = self::colorize($origin, $modified);
 
-        $sourceOrigin = self::textToArray($source['origin']);
-        $sourceModified = self::textToArray($source['modified']);
+        $source_origin = self::textToArray($source['origin']);
+        $source_modified = self::textToArray($source['modified']);
 
-        $sourceOrigin = self::assignArray($sourceOrigin, $diff['origin']);
-        $sourceModified = self::assignArray($sourceModified, $diff['modified']);
+        $source_origin = self::assignArray($source_origin, $diff['origin']);
+        $source_modified = self::assignArray($source_modified, $diff['modified']);
 
-        $textOrigin = self::arrayToString($sourceOrigin, $withLine = True);
-        $textModified = self::arrayToString($sourceModified, $withLine = true);
+        $origin_text = self::arrayToString($source_origin, $with_line = True);
+        $modified_text = self::arrayToString($source_modified, $with_line = true);
 
         return [
-            "origin" => $textOrigin,
-            "modified" => $textModified,
+            "origin" => $origin_text,
+            "modified" => $modified_text,
         ];
     }
 
-    public function compare($originText, $modifiedText, $key = true)
+    public function combineArray($origin, $combinator, $result = []){
+        foreach($combinator as $key_combinator => $value_combinator){
+            foreach($origin as $key_origin => $value_origin){
+                if($key_origin == $key_combinator){
+                    if(gettype($value_combinator) == "array"){
+                        foreach($combinator as $key => $value){
+                            $result[$key_origin] = self::combineArray($value_origin, $value_combinator, $result);
+                        }
+                    }else{
+                        $result[$key_origin] = self::setColor($value_origin, 'red') . self::setColor($value_combinator, 'green');
+                    }
+                }else{
+                    $result[$key_origin] = $value_origin;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    public function compare($origin_text, $modified_text, $combine_string = false)
     {
-        $origin = self::textToArray($originText);
-        $modified = self::textToArray($modifiedText);
+        $origin = self::textToArray($origin_text);
+        $modified = self::textToArray($modified_text);
 
         $hasReplaced = false;
         $diff = [];
 
         $diff = self::recursive($origin, $modified);
+        
+
+        if($combine_string){
+            // return $modified;
+            $result = self::combineArray($origin, $diff['modified']);
+            return self::arrayToString($result, $with_line = true);
+        }
+
         $diff = self::buildToHTML($diff['origin'], $diff['modified'], [
-            'origin' => $originText,
-            'modified' => $modifiedText
+            'origin' => $origin_text,
+            'modified' => $modified_text
         ]);
 
         return $diff;

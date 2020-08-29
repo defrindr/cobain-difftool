@@ -1,7 +1,10 @@
 <?php
-include 'diff.php';
+include '../diff.php';
+
 $files1 = file_get_contents('files1.txt');
 $files2 = file_get_contents('files2.txt');
+
+$result_combine = Diff::compare($files1, $files2, $combine_string = true);
 
 $result = Diff::compare($files1, $files2);
 ?>
@@ -30,10 +33,15 @@ $result = Diff::compare($files1, $files2);
             margin: 20px;
             display: inline-block;
         }
+        .spacer {
+            padding: 2rem 0;
+        }
     </style>
 </head>
 <body>
-        <div class="box"><?= str_replace("\n", "<br>", $result['origin']) ?></div>
-        <div class="box"><?= str_replace("\n", "<br>", $result['modified']) ?></div>
+        <div class="box"><?php print_r($result['origin']) ?></div>
+        <div class="box"><?php print_r($result['modified']) ?></div>
+        <div class="spacer"></div>
+        <div class="box"><?php print_r($result_combine) ?></div>
 </body>
 </html>

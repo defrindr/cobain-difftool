@@ -1,4 +1,5 @@
 #!/usr/bin/php
 
 <?php
-system("php -S localhost:8080");
+$dir = getcwd();
+system("php -S localhost:8080 -t $dir/sample");
