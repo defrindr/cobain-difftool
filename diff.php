@@ -3,8 +3,15 @@
 class Diff
 {
 
-    public $redColor = "<div class='red'>[text]</div>";
-    public $greenColor = "<div class='geen'>[text]</div>";
+    public $deleted_template = "<div class='red'>[text]</div>";
+    public $added_template = "<div class='geen'>[text]</div>";
+
+    public function setDefaultTemplate($deleted_template, $added_template){
+        $this->deleted_template = $deleted_template;
+        $this->added_template = $added_template;
+
+        return $this;
+    }
 
     public function textToArray($text)
     {
@@ -78,16 +85,28 @@ class Diff
         $out = "";
         switch ($style) {
             case 'red':
-                $out = str_replace('[text]', $text, "<div class='red'>[text]</div>");
+                $template = "<div class='red'>[text]</div>";
+
+                if(isset($this)){
+                    $template = $this->deleted_template;
+                }
+
+                $out = str_replace('[text]', $text, $template);
                 break;
             case 'green':
-                $out = str_replace('[text]', $text, "<div class='green'>[text]</div>");
+                $template = "<div class='green'>[text]</div>";
+
+                if(isset($this)){
+                    $template = $this->added_template;
+                }
+
+                $out = str_replace('[text]', $text, $template);
                 break;
             default:
                 throw new Exception("\$style doesnt exist.", 1);
                 break;
         }
-        // die();
+
         return $out;
     }
 
@@ -211,6 +230,7 @@ class Diff
 
         if ($combine_string) {
             $result = self::combineArray($origin, $diff['modified']);
+
             return self::arrayToString($result, $with_line = true);
         }
 
